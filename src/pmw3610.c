@@ -811,35 +811,41 @@ static int pmw3610_init(const struct device *dev) {
     return err;
 }
 
-#define PMW3610_DEFINE(n)                                                                          \
-    static struct pixart_data data##n;                                                             \
-                                                                                                  \
-    IF_ENABLED(DT_NODE_HAS_PROP(DT_DRV_INST(n), scroll_layers),                                    \
-        (static int32_t scroll_layers##n[] = DT_PROP(DT_DRV_INST(n), scroll_layers);))             \
-    IF_ENABLED(!DT_NODE_HAS_PROP(DT_DRV_INST(n), scroll_layers),                                   \
-        (static int32_t scroll_layers##n[] = {};))                                                 \
-                                                                                                  \
-    IF_ENABLED(DT_NODE_HAS_PROP(DT_DRV_INST(n), snipe_layers),                                     \
-        (static int32_t snipe_layers##n[] = DT_PROP(DT_DRV_INST(n), snipe_layers);))               \
-    IF_ENABLED(!DT_NODE_HAS_PROP(DT_DRV_INST(n), snipe_layers),                                    \
-        (static int32_t snipe_layers##n[] = {};))                                                  \
-                                                                                                  \
-    static const struct pixart_config config##n = {                                                \
-        .bus = {                                                                                  \
-            .bus = DEVICE_DT_GET(DT_INST_BUS(n)),                                                  \
-            .config = {                                                                           \
-                .frequency = DT_INST_PROP(n, spi_max_frequency),                                   \
-                .operation =                                                                      \
-                    SPI_WORD_SET(8) | SPI_TRANSFER_MSB | SPI_MODE_CPOL | SPI_MODE_CPHA,            \
-                .slave = DT_INST_REG_ADDR(n),                                                      \
-            },                                                                                    \
-        },                                                                                        \
-        .cs_gpio = SPI_CS_GPIOS_DT_SPEC_GET(DT_DRV_INST(n)),                                       \
-        .scroll_layers = scroll_layers##n,                                                         \
-        .scroll_layers_len = ARRAY_SIZE(scroll_layers##n),                                        \
-        .snipe_layers = snipe_layers##n,                                                           \
-        .snipe_layers_len = ARRAY_SIZE(snipe_layers##n),                                          \
+#define PMW3610_DEFINE(n)                                                                  \
+    static struct pixart_data data##n;                                                     \
+                                                                                        \
+    static const struct pixart_config config##n = {                                        \
+        .irq_gpio = GPIO_DT_SPEC_INST_GET_OR(n, irq_gpios, {0}),                           \
+        .bus = {                                                                          \
+            .bus = DEVICE_DT_GET(DT_INST_BUS(n)),                                          \
+            .config = {                                                                   \
+                .frequency = DT_INST_PROP(n, spi_max_frequency),                           \
+                .operation = SPI_WORD_SET(8) | SPI_TRANSFER_MSB |                          \
+                             SPI_MODE_CPOL | SPI_MODE_CPHA,                               \
+                .slave = DT_INST_REG_ADDR(n),                                              \
+            },                                                                            \
+        },                                                                                \
+        .cs_gpio = SPI_CS_GPIOS_DT_SPEC_GET(DT_DRV_INST(n)),                               \
+                                                                                        \
+        .scroll_layers =                                                                  \
+            DT_NODE_HAS_PROP(DT_DRV_INST(n), scroll_layers) ?                              \
+                DT_PROP(DT_DRV_INST(n), scroll_layers) :                                  \
+                NULL,                                                                     \
+        .scroll_layers_len =                                                              \
+            DT_NODE_HAS_PROP(DT_DRV_INST(n), scroll_layers) ?                              \
+                DT_PROP_LEN(DT_DRV_INST(n), scroll_layers) :                               \
+                0,                                                                        \
+                                                                                        \
+        .snipe_layers =                                                                   \
+            DT_NODE_HAS_PROP(DT_DRV_INST(n), snipe_layers) ?                               \
+                DT_PROP(DT_DRV_INST(n), snipe_layers) :                                   \
+                NULL,                                                                     \
+        .snipe_layers_len =                                                               \
+            DT_NODE_HAS_PROP(DT_DRV_INST(n), snipe_layers) ?                               \
+                DT_PROP_LEN(DT_DRV_INST(n), snipe_layers) :                                \
+                0,                                                                        \
     };
+
                                                                                     \
                                                                                                    \
     DEVICE_DT_INST_DEFINE(n, pmw3610_init, NULL, &data##n, &config##n, POST_KERNEL,                \
